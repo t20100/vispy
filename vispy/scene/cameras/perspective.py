@@ -210,11 +210,14 @@ class Base3DRotationCamera(PerspectiveCamera):
         PerspectiveCamera.viewbox_mouse_event(self, event)
 
         if event.type == 'mouse_release':
+            # Reset on any button's release as focus is lost on first release
             self._event_value = None  # Reset
             self._origin_mouse_event = None
         elif event.type == 'mouse_press':
             event.handled = True
-            self._origin_mouse_event = event.mouse_event
+            if self._origin_mouse_event is None:
+                # Init only for first button press
+                self._origin_mouse_event = event.mouse_event
         elif event.type == 'mouse_move':
             if event.press_event is None:
                 return
@@ -230,11 +233,11 @@ class Base3DRotationCamera(PerspectiveCamera):
             p2 = event.mouse_event.pos
             d = p2 - p1
 
-            if 1 in event.buttons and not modifiers:
+            if 1 == self._origin_mouse_event.button and not modifiers:
                 # Rotate
                 self._update_rotation(event)
 
-            elif 2 in event.buttons and not modifiers:
+            elif 2 == self._origin_mouse_event.button and not modifiers:
                 # Zoom
                 if self._event_value is None:
                     self._event_value = (self._scale_factor, self._distance)
@@ -246,7 +249,8 @@ class Base3DRotationCamera(PerspectiveCamera):
                     self._distance = self._event_value[1] * zoomy
                 self.view_changed()
 
-            elif 1 in event.buttons and keys.SHIFT in modifiers:
+            elif (1 == self._origin_mouse_event.button and
+                    keys.SHIFT in modifiers):
                 # Translate
                 norm = np.mean(self._viewbox.size)
                 if self._event_value is None or len(self._event_value) == 2:
@@ -263,7 +267,8 @@ class Base3DRotationCamera(PerspectiveCamera):
                 c = self._event_value
                 self.center = c[0] + dx, c[1] + dy, c[2] + dz
 
-            elif 2 in event.buttons and keys.SHIFT in modifiers:
+            elif (2 == self._origin_mouse_event.button and
+                    keys.SHIFT in modifiers):
                 # Change fov
                 if self._event_value is None:
                     self._event_value = self._fov
