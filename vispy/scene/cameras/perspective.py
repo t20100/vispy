@@ -176,6 +176,9 @@ class Base3DRotationCamera(PerspectiveCamera):
         self._actual_distance = 0.0
         self._event_value = None
 
+        # To store first mouse event of current interaction mode
+        self._origin_mouse_event = None
+
     @property
     def distance(self):
         """ The user-set distance. If None (default), the distance is
@@ -208,14 +211,22 @@ class Base3DRotationCamera(PerspectiveCamera):
 
         if event.type == 'mouse_release':
             self._event_value = None  # Reset
+            self._origin_mouse_event = None
         elif event.type == 'mouse_press':
             event.handled = True
+            self._origin_mouse_event = event.mouse_event
         elif event.type == 'mouse_move':
             if event.press_event is None:
                 return
 
             modifiers = event.mouse_event.modifiers
-            p1 = event.mouse_event.press_event.pos
+
+            # Reset in case modifiers change while mouse button is down
+            if modifiers != event.mouse_event.last_event.modifiers:
+                self._event_value = None
+                self._origin_mouse_event = event.mouse_event
+
+            p1 = self._origin_mouse_event.pos
             p2 = event.mouse_event.pos
             d = p2 - p1
 
@@ -228,7 +239,7 @@ class Base3DRotationCamera(PerspectiveCamera):
                 if self._event_value is None:
                     self._event_value = (self._scale_factor, self._distance)
                 zoomy = (1 + self.zoom_factor) ** d[1]
-                
+
                 self.scale_factor = self._event_value[0] * zoomy
                 # Modify distance if its given
                 if self._distance is not None:
